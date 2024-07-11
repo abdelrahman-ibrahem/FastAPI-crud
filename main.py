@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlmodel import SQLModel, Field, Session, select
 from db import init_db, get_session
-from models import Post, PostBase
+from models import Post, PostBase, PostUpdate
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -41,4 +42,21 @@ async def delete_post(post_id: int, session: Session = Depends(get_session)) -> 
     session.commit()
     return "Post deleted successfully"
 
-        
+
+
+@app.put('/posts/{post_id}/')
+async def update_post(post_id: int, post_data: PostUpdate, session: Session = Depends(get_session)):
+    post = session.get(Post, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    if post_data.title is not None:
+        post.title = post_data.title
+    if post_data.content is not None:
+        post.content = post_data.content
+
+    session.add(post)
+    session.commit()
+    session.refresh(post)
+    
+    return {"message": "Post updated successfully"}
